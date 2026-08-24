@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leave Application — Live Corps</title>
+<style>
+  :root{
+    --ink:#111418; --rule:#1a1d21; --paper:#fff; --desk:#e8e6e1;
+    --muted:#6b7076; --mark:#1a3fb0; --field:#f6f7f9;
+    --good:#17532f; --bad:#96311f;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--desk);color:var(--ink);
+    font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.35;padding:26px 16px 80px}
+
+  .wrap{max-width:860px;margin:0 auto}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .toolbar .spacer{flex:1}
+  button{font:inherit;font-weight:600;padding:9px 16px;border-radius:6px;
+    border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+  button:hover:not(:disabled){background:#f0efec}
+  button.primary{background:var(--rule);color:#fff}
+  button.primary:hover:not(:disabled){background:#000}
+  button:disabled{opacity:.5;cursor:progress}
+  button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--mark);outline-offset:1px}
+  .hint{color:#4a4f55;font-size:12.5px;margin:0 0 16px}
+
+  .msg{padding:11px 14px;border-left:3px solid var(--bad);background:#fdf2f0;
+    color:#7a2318;font-size:13px;margin-bottom:16px}
+  .msg.ok{border-color:var(--good);background:#f0f7f2;color:var(--good)}
+  .msg[hidden]{display:none}
+
+  /* identity picker sits above the form — it is not part of the printed record */
+  .picker{background:var(--paper);border:1px solid #cfd2d6;padding:16px 18px;margin-bottom:18px;
+    box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .picker h2{margin:0 0 4px;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+  .picker p{margin:0 0 12px;font-size:12.5px;color:var(--muted)}
+  .picker select{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--rule);
+    border-radius:4px;background:#fff;color:var(--ink)}
+  .who{margin-top:11px;font-size:13px;color:var(--muted);min-height:19px}
+  .who b{color:var(--ink)}
+
+  .sheet{background:var(--paper);padding:38px 40px 44px;
+    box-shadow:0 1px 3px rgba(0,0,0,.14),0 12px 34px rgba(0,0,0,.10)}
+  .letterhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:26px}
+  .logo{font-weight:800;font-size:30px;letter-spacing:-.02em}
+  .logo sup{font-size:14px;vertical-align:super}
+  .contact{font-size:10.5px;line-height:1.5;text-align:right;color:#22262b}
+  h1{text-align:center;font-size:21px;letter-spacing:.055em;font-weight:700;
+    margin:0 0 6px;text-transform:uppercase}
+  .refline{text-align:center;font-size:11px;letter-spacing:.08em;color:var(--muted);
+    margin:0 0 16px;min-height:14px}
+
+  table.form{width:100%;border-collapse:collapse}
+  table.form td{border:1px solid var(--rule);padding:6px 9px;vertical-align:top}
+  .lbl{font-weight:700;font-size:12.5px}
+  .band{background:#f2f2f0;font-weight:700;font-size:12.5px}
+
+  input[type=text],input[type=date]{font:inherit;color:var(--mark);border:0;
+    border-bottom:1px solid #c9ccd1;background:transparent;padding:2px;width:100%;min-width:0}
+  input:hover:not([readonly]):not(:disabled){background:var(--field)}
+  input[readonly]{border-bottom-style:dotted;background:transparent}
+  input::placeholder{color:#a8adb4;font-style:italic}
+  .inline{display:flex;align-items:baseline;gap:8px}
+  .inline .lbl{white-space:nowrap}
+
+  .opt{display:flex;align-items:center;gap:10px;padding:2px 0}
+  .opt input{appearance:none;-webkit-appearance:none;margin:0;flex:none;width:17px;height:17px;
+    border:1px solid var(--rule);background:#fff;cursor:pointer}
+  .opt input:checked{background:var(--mark);box-shadow:inset 0 0 0 2.5px #fff;border-color:var(--mark)}
+  .opt input:disabled{cursor:default;background:#f2f2f2}
+  .opt label{cursor:pointer}
+  .statusrow{display:flex;gap:26px;flex-wrap:wrap;padding-top:2px}
+
+  .reasons{padding:10px 9px 6px}
+  .datesbox{padding:10px 14px}
+  .datesbox h3{margin:0 0 12px;text-align:center;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase}
+  .dateline{display:grid;grid-template-columns:44px 1fr;align-items:baseline;gap:8px;margin-bottom:9px}
+  .specify{margin:2px 0 6px 27px}
+  .duration{margin-top:14px}
+  .tally{margin-top:16px;padding:9px 11px;background:#f2f4f7;border:1px solid #d3d7dd;font-size:12.5px}
+  .tally strong{font-size:15px}
+  .tally .warn{color:var(--bad);font-weight:600}
+
+  .cert{font-size:12px;line-height:1.5;text-align:justify}
+  .siglines{display:grid;grid-template-columns:2fr 1fr;gap:22px;align-items:end;margin-top:10px}
+  .sigfield input{border-bottom:1px solid var(--rule)}
+  .sigfield input.script{font-family:"Segoe Script","Bradley Hand",cursive;font-size:19px;color:var(--mark)}
+  .caption{font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.02em}
+
+  .approval{min-height:86px}
+  .approval .row{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+  .ruled{border-bottom:1px solid var(--rule);height:20px;margin-top:14px}
+
+  table.admin{width:100%;border-collapse:collapse}
+  table.admin th,table.admin td{border:1px solid var(--rule);padding:5px 7px;font-size:12px}
+  table.admin th{font-weight:700;text-align:center;background:#f2f2f0}
+  table.admin td:first-child{text-align:left}
+  table.admin td:not(:first-child){height:23px;background:#fafafa}
+
+  .err{border-bottom:2px solid var(--bad) !important;background:#fdf2f0}
+  .locked{opacity:.45;pointer-events:none}
+
+  @media (max-width:640px){
+    body{padding:14px 8px 60px}
+    .sheet{padding:22px 16px 28px}
+    .letterhead{flex-direction:column}
+    .contact{text-align:left}
+    .siglines{grid-template-columns:1fr}
+    .splitrow{display:block}
+  }
+
+  @page{size:A4;margin:12mm}
+  @media print{
+    body{background:#fff;padding:0;font-size:11.5px}
+    .toolbar,.hint,.msg,.tally,.picker{display:none !important}
+    .sheet{box-shadow:none;padding:0}
+    .wrap{max-width:none}
+    input{border-bottom-color:#000 !important;background:transparent !important;color:#000 !important;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    input::placeholder{color:transparent !important}
+    .opt input{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .opt input:checked{background:#000 !important;border-color:#000 !important;box-shadow:inset 0 0 0 2.5px #fff}
+    .sigfield input.script{color:#000 !important}
+    .locked{opacity:1}
+    table.admin td:not(:first-child){background:#fff}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <button class="primary" id="btnSubmit">Submit application</button>
+    <button id="btnPrint">Save as PDF</button>
+    <button id="btnClear">Clear form</button>
+    <span class="spacer"></span>
+    <span id="mode" style="font-size:12px;color:#4a4f55"></span>
+  </div>
+  <p class="hint">Pick your name, fill in the dates, and submit. A copy is recorded for HR and you can save a PDF for your own file.</p>
+
+  <div class="msg" id="msg" hidden role="status" aria-live="polite"></div>
+
+  <div class="picker">
+    <h2>Who is applying?</h2>
+    <p>Choose your name — your ID, designation, department, and join date fill in automatically.</p>
+    <select id="employee" aria-label="Select employee">
+      <option value="">Select your name…</option>
+    </select>
+    <div class="who" id="who"></div>
+  </div>
+
+  <div class="sheet" id="sheet">
+    <div class="letterhead">
+      <div class="logo">LIVE<sup>▪</sup></div>
+      <div class="contact">
+        +880-1335-114516<br>connect@livecorps.com<br>www.livecorps.com<br>
+        Level 4, House 2, Road 28<br>Block K, Banani, Dhaka 1213, Bangladesh
+      </div>
+    </div>
+
+    <h1>Leave Application Form</h1>
+    <p class="refline" id="refline"></p>
+
+    <table class="form">
+      <tr>
+        <td style="width:50%"><div class="inline"><span class="lbl">EMPLOYEE NAME:</span><input type="text" id="name" readonly tabindex="-1"></div></td>
+        <td><div class="inline"><span class="lbl">DEPARTMENT:</span><input type="text" id="dept" readonly tabindex="-1"></div></td>
+      </tr>
+      <tr>
+        <td><div class="inline"><span class="lbl">DESIGNATION:</span><input type="text" id="designation" readonly tabindex="-1"></div></td>
+        <td><div class="inline"><span class="lbl">EMPLOYMENT NUMBER:</span><input type="text" id="empno" readonly tabindex="-1"></div></td>
+      </tr>
+      <tr>
+        <td colspan="2"><div class="inline" style="max-width:340px"><span class="lbl">DATE OF JOINING:</span><input type="date" id="doj"></div></td>
+      </tr>
+
+      <tr><td colspan="2" class="band">STATUS</td></tr>
+      <tr><td colspan="2">
+        <div class="statusrow" id="statusGroup">
+          <div class="opt"><input type="radio" name="status" id="st1" value="Intern"><label for="st1">Intern</label></div>
+          <div class="opt"><input type="radio" name="status" id="st2" value="Probation"><label for="st2">Probation</label></div>
+          <div class="opt"><input type="radio" name="status" id="st3" value="Permanent"><label for="st3">Permanent</label></div>
+          <div class="opt"><input type="radio" name="status" id="st4" value="Contractual"><label for="st4">Contractual</label></div>
+        </div>
+      </td></tr>
+
+      <tr><td colspan="2" class="band">REASON FOR REQUESTED LEAVE</td></tr>
+      <tr>
+        <td class="reasons">
+          <div id="reasonGroup">
+            <div class="opt"><input type="radio" name="reason" id="r1" value="Annual Leave"><label for="r1">Annual Leave</label></div>
+            <div class="opt"><input type="radio" name="reason" id="r2" value="Sick Leave"><label for="r2">Sick Leave</label></div>
+            <div class="opt"><input type="radio" name="reason" id="r3" value="Discretionary / Casual Leave"><label for="r3">Discretionary / Casual Leave</label></div>
+            <div class="opt"><input type="radio" name="reason" id="r4" value="Maternity / Paternity Leave"><label for="r4">Maternity / Paternity Leave</label></div>
+            <div class="opt"><input type="radio" name="reason" id="r5" value="Medical Leave"><label for="r5">Medical Leave</label></div>
+            <div class="opt"><input type="radio" name="reason" id="r6" value="Leave Without Pay"><label for="r6">Leave Without Pay</label></div>
+            <div class="opt"><input type="radio" name="reason" id="r7" value="Compensatory Leave"><label for="r7">Compensatory Leave</label></div>
+            <div class="specify inline"><span class="lbl" style="font-size:12px">against date worked:</span><input type="date" id="compDate" disabled></div>
+            <div class="opt"><input type="radio" name="reason" id="r8" value="Other"><label for="r8">Other</label></div>
+            <div class="specify inline"><span class="lbl" style="font-size:12px">Please specify:</span><input type="text" id="otherText" disabled placeholder="Reason"></div>
+          </div>
+        </td>
+        <td class="datesbox">
+          <h3>Dates Requested</h3>
+          <div class="dateline"><span class="lbl">From:</span><input type="date" id="from"></div>
+          <div class="dateline"><span class="lbl">To:</span><input type="date" id="to"></div>
+          <div class="duration">
+            <div class="opt"><input type="radio" name="duration" id="d1" value="Full Day" checked><label for="d1">Full Day</label></div>
+            <div class="opt"><input type="radio" name="duration" id="d2" value="Half Day"><label for="d2">Half Day</label></div>
+          </div>
+          <div class="tally" id="tally">Select your dates to see the total.</div>
+        </td>
+      </tr>
+
+      <tr><td colspan="2" class="cert">
+        <b>Certification:</b> I hereby request leave/approved absence from duty as indicated above and certify that
+        such leave/absence is requested for the purpose(s) indicated. I understand that I must comply with
+        Live's procedures for requesting leave/approved absence (and provide additional documentation,
+        including medical certification, if required) and that falsification on this form may be grounds for
+        disciplinary action, including termination.
+      </td></tr>
+
+      <tr><td colspan="2">
+        <div class="lbl" style="margin-bottom:4px">Employee Signature &amp; Date</div>
+        <div class="siglines">
+          <div class="sigfield">
+            <input type="text" class="script" id="signature" placeholder="Type your full name to sign">
+            <div class="caption">SIGNATURE</div>
+          </div>
+          <div class="sigfield">
+            <input type="date" id="sigdate">
+            <div class="caption">DATE</div>
+          </div>
+        </div>
+      </td></tr>
+
+      <tr><td colspan="2" class="approval">
+        <div class="row">
+          <span class="lbl">General Manager Approval:</span>
+          <div class="opt"><input type="radio" name="gm" id="gm1" disabled><label for="gm1">Approved</label></div>
+          <div class="opt"><input type="radio" name="gm" id="gm2" disabled><label for="gm2">Rejected</label></div>
+        </div>
+        <div class="lbl" style="margin-top:10px">Reason for rejection:</div>
+        <div class="ruled"></div>
+        <div class="lbl" style="margin-top:14px">Manager Signature:</div>
+        <div class="ruled"></div>
+      </td></tr>
+    </table>
+
+    <table class="admin">
+      <tr><th colspan="5" style="text-align:left">ADMIN USE ONLY</th></tr>
+      <tr>
+        <th style="width:32%"></th><th>Total Eligible Days</th><th>Leave Already Taken</th>
+        <th>Available Leave Days</th><th>Applied Leave(s)</th>
+      </tr>
+      <tr><td>Annual Leave</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Sick Leave</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Discretionary / Casual Leave</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Maternity / Paternity Leave</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Medical Leave</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Leave Without Pay</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>Other</td><td></td><td></td><td></td><td></td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="employees.js"></script>
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var CFG = window.CONFIG || {};
+  var WEEKEND = CFG.weekend || [5,6];
+  var LIVE = !!(CFG.endpoint && CFG.endpoint.indexOf("http") === 0);
+  var submitted = false;
+
+  $("mode").textContent = LIVE ? "Recording to the HR sheet" : "PDF only — no endpoint configured";
+
+  /* ---- roster ---- */
+  var byId = {};
+  (window.EMPLOYEES || []).forEach(function(e){ byId[e.id] = e; });
+  var sel = $("employee");
+  (window.EMPLOYEES || [])
+    .slice()
+    .sort(function(a,b){ return a.name.localeCompare(b.name); })
+    .forEach(function(e){
+      var o = document.createElement("option");
+      o.value = e.id;
+      o.textContent = e.name + " — " + e.id;
+      sel.appendChild(o);
+    });
+
+  sel.addEventListener("change", function(){
+    var e = byId[sel.value];
+    if(!e){
+      ["name","dept","designation","empno","doj","signature"].forEach(function(id){ $(id).value = ""; });
+      $("who").textContent = "";
+      return;
+    }
+    $("name").value = e.name;
+    $("dept").value = e.department;
+    $("designation").value = e.designation;
+    $("empno").value = e.id;
+    $("doj").value = e.joined;
+    $("signature").value = e.name;
+    $("who").innerHTML = "<b>" + e.designation + "</b>, " + e.department +
+      (e.joined ? " · joined " + e.joined : " · <span style='color:#96311f'>join date missing — enter it below</span>");
+    hide();
+  });
+
+  /* ---- conditional fields ---- */
+  function syncConditionals(){
+    var comp = $("r7").checked, other = $("r8").checked;
+    $("compDate").disabled = !comp;
+    $("otherText").disabled = !other;
+    if(!comp) $("compDate").value = "";
+    if(!other) $("otherText").value = "";
+  }
+  document.querySelectorAll('input[name=reason]').forEach(function(el){
+    el.addEventListener("change", function(){ syncConditionals(); calc(); });
+  });
+
+  /* ---- day count ---- */
+  var appliedDays = 0;
+  function calc(){
+    var f = $("from").value, t = $("to").value, box = $("tally");
+    appliedDays = 0;
+    if(!f || !t){ box.textContent = "Select your dates to see the total."; return; }
+    var a = new Date(f+"T00:00:00"), b = new Date(t+"T00:00:00");
+    if(b < a){ box.innerHTML = '<span class="warn">The end date is before the start date.</span>'; return; }
+    var total = 0, working = 0, d = new Date(a);
+    while(d <= b){
+      total++;
+      if(WEEKEND.indexOf(d.getDay()) === -1) working++;
+      d.setDate(d.getDate()+1);
+    }
+    if($("d2").checked && total > 1){
+      box.innerHTML = '<span class="warn">Half Day applies to one date. Set From and To to the same day.</span>';
+      return;
+    }
+    appliedDays = $("d2").checked ? 0.5 : working;
+    box.innerHTML = "Calendar days: <b>"+total+"</b> · Weekends excluded: <b>"+(total-working)+
+      "</b><br>Leave days applied: <strong>"+appliedDays+"</strong>";
+  }
+  ["from","to"].forEach(function(id){ $(id).addEventListener("change", calc); });
+  document.querySelectorAll('input[name=duration]').forEach(function(el){ el.addEventListener("change", calc); });
+
+  /* ---- messages ---- */
+  function say(text, ok){
+    var m = $("msg");
+    m.innerHTML = text;
+    m.className = "msg" + (ok ? " ok" : "");
+    m.hidden = false;
+    m.scrollIntoView({block:"nearest", behavior:"smooth"});
+  }
+  function hide(){ $("msg").hidden = true; }
+
+  /* ---- data + validation ---- */
+  function reasonValue(){
+    var r = document.querySelector('input[name=reason]:checked');
+    if(!r) return "";
+    if(r.value === "Other") return "Other — " + ($("otherText").value.trim() || "not specified");
+    if(r.value === "Compensatory Leave") return "Compensatory Leave (worked " + ($("compDate").value || "date not given") + ")";
+    return r.value;
+  }
+  function data(){
+    var st = document.querySelector('input[name=status]:checked');
+    return {
+      employeeId: $("empno").value,
+      employeeName: $("name").value,
+      designation: $("designation").value,
+      department: $("dept").value,
+      dateOfJoining: $("doj").value,
+      status: st ? st.value : "",
+      leaveType: reasonValue(),
+      compensatoryAgainst: $("compDate").value,
+      from: $("from").value,
+      to: $("to").value,
+      duration: $("d2").checked ? "Half Day" : "Full Day",
+      appliedDays: appliedDays,
+      signedBy: $("signature").value.trim(),
+      signedOn: $("sigdate").value
+    };
+  }
+
+  function validate(){
+    document.querySelectorAll("input").forEach(function(el){ el.classList.remove("err"); });
+    var problems = [], first = null;
+    function bad(el, why){ if(el){ el.classList.add("err"); if(!first) first = el; } problems.push(why); }
+
+    if(!sel.value){ if(!first) first = sel; problems.push("choose your name"); }
+    if(!$("doj").value) bad($("doj"), "date of joining");
+    if(!document.querySelector('input[name=status]:checked')) problems.push("employment status");
+    if(!document.querySelector('input[name=reason]:checked')) problems.push("leave type");
+    if($("r8").checked && !$("otherText").value.trim()) bad($("otherText"), "what the other leave is for");
+    if($("r7").checked && !$("compDate").value) bad($("compDate"), "the date worked");
+    if(!$("from").value) bad($("from"), "start date");
+    if(!$("to").value) bad($("to"), "end date");
+    if(!$("signature").value.trim()) bad($("signature"), "your signature");
+    if(!$("sigdate").value) bad($("sigdate"), "signature date");
+
+    if(problems.length){
+      say("Still needed: " + problems.join(", ") + ".");
+      if(first) first.scrollIntoView({block:"center", behavior:"smooth"});
+      return false;
+    }
+    if($("to").value < $("from").value){ say("The end date is before the start date."); return false; }
+    if(appliedDays === 0){ say("This request works out to zero leave days. Check the dates and the Full/Half Day choice."); return false; }
+    hide();
+    return true;
+  }
+
+  /* ---- submit ---- */
+  $("btnSubmit").addEventListener("click", function(){
+    if(submitted){ say("This application was already submitted. Clear the form to start a new one."); return; }
+    if(!validate()) return;
+
+    if(!LIVE){
+      say("No recording endpoint is set up yet, so nothing was sent. Use <b>Save as PDF</b> and email it to " +
+          (CFG.hrContact || "HR") + ".");
+      return;
+    }
+
+    var btn = $("btnSubmit");
+    btn.disabled = true;
+    btn.textContent = "Submitting…";
+    say("Sending your application…", true);
+
+    /* text/plain keeps this a simple request, so Apps Script needs no CORS preflight */
+    fetch(CFG.endpoint, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify(data())
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if(!res || res.status !== "ok") throw new Error(res && res.message ? res.message : "rejected");
+      submitted = true;
+      $("refline").textContent = "REFERENCE " + res.reference;
+      $("sheet").classList.add("locked");
+      btn.textContent = "Submitted";
+      say("Recorded as <b>" + res.reference + "</b>. HR and your approver can see it now. " +
+          "Use <b>Save as PDF</b> to keep your own copy. Questions: " + (CFG.hrContact || "HR") + ".", true);
+    })
+    .catch(function(err){
+      btn.disabled = false;
+      btn.textContent = "Submit application";
+      say("Could not record the application: " + err.message +
+          ". Your details are still on screen — try again, or use <b>Save as PDF</b> and email it to " +
+          (CFG.hrContact || "HR") + ".");
+    });
+  });
+
+  $("btnPrint").addEventListener("click", function(){ if(validate()) window.print(); });
+
+  $("btnClear").addEventListener("click", function(){
+    if(!confirm("Clear every field?")) return;
+    sel.value = "";
+    document.querySelectorAll("input").forEach(function(el){
+      if(el.type === "radio") el.checked = (el.id === "d1"); else el.value = "";
+    });
+    $("who").textContent = "";
+    $("refline").textContent = "";
+    $("sheet").classList.remove("locked");
+    submitted = false;
+    $("btnSubmit").disabled = false;
+    $("btnSubmit").textContent = "Submit application";
+    $("sigdate").value = new Date().toISOString().slice(0,10);
+    syncConditionals(); calc(); hide();
+  });
+
+  $("sigdate").value = new Date().toISOString().slice(0,10);
+  syncConditionals(); calc();
+})();
+</script>
+</body>
+</html>
